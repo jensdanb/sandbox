@@ -55,14 +55,6 @@ allowed_weekly_hours = timedelta(hours=48)
 allowed_consecutive_weekends = 1
 average_workdays_per_week_shall_be = 5
 
-# Checking the rules
-@dataclass
-class RuleEnforcer():
-    start_time: datetime
-    working_days: list[int]
-    free_days: list[int]
-    shifts: dict[Shift]
-
 
 def rule_1(allowed_shift_duration, shifts):
     print('-------------')
