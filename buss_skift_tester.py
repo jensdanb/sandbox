@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 from dataclasses import dataclass, field
+import csv
 
 
 @dataclass
@@ -17,34 +18,33 @@ class Shift:
 start_of_period = datetime(2023, 5, 1, 0, 0)
 end_of_period = start_of_period + timedelta(weeks=4)
 
-working_days = list(range(1, 28 + 1))
+all_days = list(range(1, 29))
+working_days = all_days.copy()
 free_days = [5, 10, 13, 21, 23, 26, 28]
 for free_day in free_days:
     working_days.remove(free_day)
 
-shift_starts = [
-    [16, 4], [16, 4], [10, 15], [10, 15], [16, 4], [16, 4],
-    [11, 18], [11, 18], [16, 4], [16, 4], [10, 15],
-    [5, 15], [5, 15], [16, 4], [11, 10], [11, 10], [10, 15],
-    [4, 32], [4, 32], [5, 15], [5, 15]
-]
-
-shift_ends = [
-    [24, 14], [24, 14], [17, 35], [17, 35], [24, 14], [24, 14],
-    [21, 23], [21, 23], [24, 14], [24, 14], [17, 35],
-    [11, 20], [11, 20], [24, 14], [21, 23], [21, 23], [17, 35],
-    [10, 8], [10, 8], [11, 20], [11, 20]
-]
-
 shifts = {}
-for i in range(len(working_days)):
-    day = working_days[i]
-    start_time = start_of_period + timedelta(days=day-1, hours=shift_starts[i][0], minutes=shift_starts[i][1])
-    end_time = start_of_period + timedelta(days=day-1, hours=shift_ends[i][0], minutes=shift_ends[i][1])
-    shift_day = start_of_period + timedelta(days=day-1)
+_shift_id = 0
+with open('shifts.csv') as file:
+    reader = csv.DictReader(file)
 
-    shifts[i] = Shift(shift_day=shift_day, start_time=start_time, end_time=end_time)
-    # print(f'i: {i}, day: {day}, shift: {shifts[i]}')
+    for row in reader:
+        # Columns: day, start_hour, start_minute, end_hour, end_minute
+        day = int(row['day'])
+        shift_day = start_of_period + timedelta(days=day - 1)
+
+        start_hour = int(row['start_hour'])
+        start_minute = int(row['start_minute'])
+        start_time = start_of_period + timedelta(days=day - 1, hours=start_hour, minutes=start_minute)
+
+        end_hour = int(row['end_hour'])
+        end_minute = int(row['end_minute'])
+        end_time = start_of_period + timedelta(days=day - 1, hours=end_hour, minutes=end_minute)
+
+        shifts[_shift_id] = Shift(shift_day=shift_day, start_time=start_time, end_time=end_time)
+        _shift_id += 1
+
 
 # Rules
 allowed_shift_duration = timedelta(hours=9)
@@ -80,7 +80,7 @@ def rule_2(min_time_between_shifts, shifts):
                 print(f'Regelbrudd på skift {s + 1}: Tid siden forrige skift; {time_since_last_shift}, er under 11 timer')
 
 
-def rule_3(min_holiday_time, free_days, working_days):
+def rule_3(min_holiday_time, shifts, free_days, working_days):
     print('-------------')
     print('Regel 3 brudd: ')
     for f in range(len(free_days) - 1):
@@ -145,8 +145,8 @@ def rule_7(average_workdays_per_week_shall_be, working_days, allowed_deviance=0.
 if __name__ == '__main__':
     rule_1(allowed_shift_duration, shifts)
     rule_2(min_time_between_shifts, shifts)
-    rule_3(min_holiday_time, free_days, working_days)
+    rule_3(min_holiday_time, shifts, free_days, working_days)
     rule_4(allowed_consecutive_days, working_days)
     rule_5(allowed_weekly_hours, start_of_period, shifts)
     rule_6(working_days)
-    rule_7(average_workdays_per_week_shall_be, working_days, allowed_deviance=0.1)
+    rule_7(average_workdays_per_week_shall_be, working_days, allowed_deviance=0.01)
